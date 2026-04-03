@@ -5,9 +5,8 @@ import pytest
 import respx
 
 from aiproxyguard import (
-    AIProxyGuard,
     Action,
-    CheckResult,
+    AIProxyGuard,
     ConnectionError,
     ContentBlockedError,
     GuardConfigurationError,
@@ -69,7 +68,9 @@ class TestAIProxyGuardInit:
 
     def test_http_with_api_key_allowed_with_insecure_flag(self):
         """Test that HTTP with API key is allowed with allow_insecure=True."""
-        client = AIProxyGuard("http://example.com", api_key="secret", allow_insecure=True)
+        client = AIProxyGuard(
+            "http://example.com", api_key="secret", allow_insecure=True
+        )
         assert client.api_key == "secret"
 
 
@@ -133,7 +134,9 @@ class TestCheckSync:
         assert result.is_blocked is True
         assert result.category == "prompt_injection"
 
-    def test_check_validation_error(self, base_url, mock_api, validation_error_response):
+    def test_check_validation_error(
+        self, base_url, mock_api, validation_error_response
+    ):
         """Test check raises ValidationError on 400."""
         mock_api.post("/check").respond(400, json=validation_error_response)
 
@@ -191,7 +194,9 @@ class TestCheckAsync:
         assert result.is_blocked is True
 
     @pytest.mark.asyncio
-    async def test_check_batch_async(self, base_url, mock_api, allow_response, block_response):
+    async def test_check_batch_async(
+        self, base_url, mock_api, allow_response, block_response
+    ):
         """Test async batch check runs concurrently."""
         mock_api.post("/check").side_effect = [
             httpx.Response(200, json=allow_response),
@@ -283,7 +288,9 @@ class TestRetryLogic:
 
         assert len(mock_api.calls) == 3  # Initial + 2 retries
 
-    def test_no_retry_on_validation_error(self, base_url, mock_api, validation_error_response):
+    def test_no_retry_on_validation_error(
+        self, base_url, mock_api, validation_error_response
+    ):
         """Test client does not retry validation errors."""
         mock_api.post("/check").respond(400, json=validation_error_response)
 

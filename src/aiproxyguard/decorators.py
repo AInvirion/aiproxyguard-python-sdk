@@ -6,7 +6,7 @@ import asyncio
 import inspect
 import warnings
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar, Union, overload
+from typing import Any, Callable, TypeVar, overload
 
 from .exceptions import ContentBlockedError
 
@@ -24,7 +24,7 @@ class GuardConfigurationError(ValueError):
 
 @overload
 def guard(
-    client: "AIProxyGuard",
+    client: AIProxyGuard,
     *,
     input_arg: str = "prompt",
     raise_on_block: bool = True,
@@ -34,7 +34,7 @@ def guard(
 
 @overload
 def guard(
-    client: "AIProxyGuard",
+    client: AIProxyGuard,
     *,
     input_arg: int,
     raise_on_block: bool = True,
@@ -43,9 +43,9 @@ def guard(
 
 
 def guard(
-    client: "AIProxyGuard",
+    client: AIProxyGuard,
     *,
-    input_arg: Union[str, int] = "prompt",
+    input_arg: str | int = "prompt",
     raise_on_block: bool = True,
     fail_closed: bool = True,
 ) -> Callable[[F], F]:
@@ -67,8 +67,8 @@ def guard(
         Decorated function that checks input before execution.
 
     Raises:
-        GuardConfigurationError: If input_arg doesn't match any parameter (at decoration time
-                                  for string args, or at call time if fail_closed=True).
+        GuardConfigurationError: If input_arg doesn't match any parameter
+            (at decoration time for string args, or at call time if fail_closed).
 
     Example:
         >>> client = AIProxyGuard("http://localhost:8080")
@@ -100,11 +100,11 @@ def guard(
                     f"'{func.__name__}' parameters: {param_names}"
                 )
             # Pre-compute the positional index for this parameter
-            cached_arg_index: Optional[int] = param_names.index(input_arg)
+            cached_arg_index: int | None = param_names.index(input_arg)
         else:
             cached_arg_index = None
 
-        def _extract_text(args: tuple, kwargs: dict) -> Optional[str]:
+        def _extract_text(args: tuple, kwargs: dict) -> str | None:
             """Extract text to check from function arguments."""
             text: Any = None
             resolved = False
@@ -116,7 +116,7 @@ def guard(
                 elif fail_closed:
                     raise GuardConfigurationError(
                         f"guard(): input_arg index {input_arg} out of range. "
-                        f"Function '{func.__name__}' called with {len(args)} positional args."
+                        f"'{func.__name__}' got {len(args)} positional args."
                     )
                 else:
                     warnings.warn(
@@ -187,7 +187,7 @@ def guard(
 
 
 def guard_output(
-    client: "AIProxyGuard",
+    client: AIProxyGuard,
     *,
     raise_on_block: bool = True,
 ) -> Callable[[F], F]:
