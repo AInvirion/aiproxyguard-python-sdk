@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/project/aiproxyguard/
+      url: https://test.pypi.org/project/aiproxyguard-python-sdk/
     permissions:
       id-token: write
       attestations: write
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/aiproxyguard/
+      url: https://pypi.org/project/aiproxyguard-python-sdk/
     permissions:
       id-token: write
       attestations: write

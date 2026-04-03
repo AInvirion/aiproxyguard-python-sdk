@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "aiproxyguard"
+name = "aiproxyguard-python-sdk"
 version = "0.1.0"
 description = "Official Python SDK for AIProxyGuard - LLM security proxy for prompt injection detection"
 readme = "README.md"
