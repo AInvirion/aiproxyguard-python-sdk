@@ -88,6 +88,8 @@ jobs:
       url: https://test.pypi.org/project/aiproxyguard/
     permissions:
       id-token: write
+      attestations: write
+      contents: read
 
     steps:
       - name: Download artifacts
@@ -111,6 +113,8 @@ jobs:
       url: https://pypi.org/project/aiproxyguard/
     permissions:
       id-token: write
+      attestations: write
+      contents: read
 
     steps:
       - name: Download artifacts
