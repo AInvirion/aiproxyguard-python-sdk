@@ -104,7 +104,7 @@ def guard(
         else:
             cached_arg_index = None
 
-        def _extract_text(args: tuple, kwargs: dict) -> str | None:
+        def _extract_text(args: tuple[Any, ...], kwargs: dict[str, Any]) -> str | None:
             """Extract text to check from function arguments."""
             text: Any = None
             resolved = False

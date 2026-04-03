@@ -16,7 +16,7 @@ class Action(str, Enum):
     BLOCK = "block"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class ThreatDetail:
     """Details about a detected threat (cloud API only).
 
@@ -40,7 +40,7 @@ class ThreatDetail:
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class CheckResult:
     """Result from scanning text for prompt injection.
 
@@ -107,7 +107,7 @@ class CheckResult:
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class CloudCheckResult:
     """Extended result from the cloud API with additional metadata.
 
@@ -160,7 +160,7 @@ class CloudCheckResult:
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class ServiceInfo:
     """Service information from the AIProxyGuard API.
 
@@ -178,7 +178,7 @@ class ServiceInfo:
         return cls(service=data["service"], version=data["version"])
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class HealthStatus:
     """Health status from the AIProxyGuard API.
 
@@ -197,7 +197,7 @@ class HealthStatus:
         return cls(status=status, healthy=status == "healthy")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class ReadyStatus:
     """Readiness status from the AIProxyGuard API.
 
