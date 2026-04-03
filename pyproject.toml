@@ -50,9 +50,9 @@ dev = [
 
 [project.urls]
 Homepage = "https://aiproxyguard.com"
-Documentation = "https://docs.aiproxyguard.com"
-Repository = "https://github.com/ainvirion/aiproxyguard-python"
-Issues = "https://github.com/ainvirion/aiproxyguard-python/issues"
+Documentation = "https://ainvirion.github.io/aiproxyguard/"
+Repository = "https://github.com/AInvirion/aiproxyguard-python-sdk"
+Issues = "https://github.com/AInvirion/aiproxyguard-python-sdk/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aiproxyguard"]

@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Tests](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/tests.yml)
 
-Official Python SDK for [AIProxyGuard](https://aiproxyguard.com) - LLM security proxy for prompt injection detection.
+Official Python SDK for [AIProxyGuard](https://aiproxyguard.com) - an LLM security proxy that detects prompt injection attacks in real-time.
 
 ## Installation
 
@@ -323,11 +323,21 @@ Extended result from cloud API.
 | `WARN` | Potential issue, proceed with caution |
 | `BLOCK` | Detected threat, do not proceed |
 
+## Requirements
+
+- Python 3.9+
+- httpx (only runtime dependency)
+
 ## Documentation
 
-- [Full SDK Documentation](https://ainvirion.github.io/aiproxyguard/python-sdk)
-- [API Reference](https://ainvirion.github.io/aiproxyguard/api-reference)
-- [Getting Started Guide](https://ainvirion.github.io/aiproxyguard/getting-started)
+For detailed documentation, guides, and API reference, visit:
+
+**[https://ainvirion.github.io/aiproxyguard/](https://ainvirion.github.io/aiproxyguard/)**
+
+## Related
+
+- [AIProxyGuard](https://aiproxyguard.com) - Cloud API
+- [TypeScript/JavaScript SDK](https://github.com/AInvirion/aiproxyguard-npm-sdk) - Node.js client
 
 ## Contributing
 
@@ -335,4 +345,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE) for details.
+[Apache-2.0](LICENSE) - Copyright 2026 AINVIRION
