@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import random
 import time
+from collections.abc import Awaitable
 from enum import Enum
 from typing import Any, Callable, TypeVar
 
@@ -272,13 +273,13 @@ class AIProxyGuard:
 
         raise last_exception or AIProxyGuardError("Request failed after retries")
 
-    async def _retry_async(self, operation: Callable[[], T]) -> T:
+    async def _retry_async(self, operation: Callable[[], Awaitable[T]]) -> T:
         """Execute operation with retry logic (async)."""
         last_exception: Exception | None = None
 
         for attempt in range(self.retries + 1):
             try:
-                return await operation()  # type: ignore[misc]
+                return await operation()
 
             except httpx.TimeoutException:
                 last_exception = TimeoutError("Request timed out")
