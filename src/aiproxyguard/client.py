@@ -242,8 +242,8 @@ class AIProxyGuard:
         """Calculate delay with exponential backoff and jitter."""
         if rate_limit_retry is not None:
             return float(rate_limit_retry)
-        base_delay = self.retry_delay * (2**attempt)
-        jitter = random.uniform(0, 0.1 * base_delay)
+        base_delay: float = self.retry_delay * (2**attempt)
+        jitter: float = random.uniform(0, 0.1 * base_delay)
         return base_delay + jitter
 
     def _retry_sync(self, operation: Callable[[], T]) -> T:
