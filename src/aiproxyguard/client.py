@@ -6,7 +6,7 @@ import asyncio
 import random
 import time
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 import httpx
 
@@ -18,7 +18,13 @@ from .exceptions import (
     TimeoutError,
     ValidationError,
 )
-from .models import CheckResult, CloudCheckResult, HealthStatus, ReadyStatus, ServiceInfo
+from .models import (
+    CheckResult,
+    CloudCheckResult,
+    HealthStatus,
+    ReadyStatus,
+    ServiceInfo,
+)
 
 # Maximum characters to include from response text in error messages
 _MAX_ERROR_TEXT_LENGTH = 200
@@ -40,8 +46,8 @@ class AIProxyGuard:
     against the AIProxyGuard API for potential prompt injection attacks.
 
     Supports two API modes:
-    - "proxy": Direct proxy mode (docker.aiproxyguard.com) - simpler, lower latency
-    - "cloud": Cloud API mode (aiproxyguard.com) - includes caching, rate limiting, telemetry
+    - "proxy": Direct proxy mode (docker.aiproxyguard.com) - simpler
+    - "cloud": Cloud API mode (aiproxyguard.com) - caching, rate limiting
 
     Args:
         base_url: Base URL of the AIProxyGuard service.
@@ -49,8 +55,8 @@ class AIProxyGuard:
         timeout: Request timeout in seconds. Defaults to 30.0.
         retries: Number of retry attempts for transient failures. Defaults to 3.
         retry_delay: Initial delay between retries in seconds. Defaults to 0.5.
-        max_concurrency: Maximum concurrent requests for batch operations. Defaults to 10.
-        api_mode: API mode - "proxy" or "cloud". Auto-detected from URL if not specified.
+        max_concurrency: Max concurrent requests for batch operations. Defaults to 10.
+        api_mode: API mode - "proxy" or "cloud". Auto-detected from URL.
 
     Example:
         >>> # Direct proxy mode
@@ -69,12 +75,12 @@ class AIProxyGuard:
     def __init__(
         self,
         base_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         timeout: float = 30.0,
         retries: int = 3,
         retry_delay: float = 0.5,
         max_concurrency: int = 10,
-        api_mode: Optional[str] = None,
+        api_mode: str | None = None,
         allow_insecure: bool = False,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -83,9 +89,9 @@ class AIProxyGuard:
         self.retries = retries
         self.retry_delay = retry_delay
         self.max_concurrency = max_concurrency
-        self._client: Optional[httpx.Client] = None
-        self._async_client: Optional[httpx.AsyncClient] = None
-        self._pending_async_close: Optional[httpx.AsyncClient] = None
+        self._client: httpx.Client | None = None
+        self._async_client: httpx.AsyncClient | None = None
+        self._pending_async_close: httpx.AsyncClient | None = None
 
         # Security: Reject plain HTTP with API keys unless explicitly allowed
         if api_key and self.base_url.startswith("http://") and not allow_insecure:
@@ -107,7 +113,7 @@ class AIProxyGuard:
             self._api_mode = ApiMode(api_mode)
 
     @property
-    def api_key(self) -> Optional[str]:
+    def api_key(self) -> str | None:
         """Get the current API key."""
         return self._api_key
 
@@ -116,7 +122,7 @@ class AIProxyGuard:
         """Get the current API mode."""
         return self._api_mode
 
-    def set_api_key(self, api_key: Optional[str]) -> None:
+    def set_api_key(self, api_key: str | None) -> None:
         """Update the API key and rebuild HTTP clients.
 
         Args:
@@ -136,7 +142,7 @@ class AIProxyGuard:
             self._pending_async_close = self._async_client
             self._async_client = None
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         """Build request headers."""
         headers = {"Content-Type": "application/json"}
         if self._api_key:
@@ -205,9 +211,8 @@ class AIProxyGuard:
                 else:
                     raise ValidationError(str(data))
             except (ValueError, KeyError, TypeError):
-                raise AIProxyGuardError(
-                    f"HTTP {response.status_code}: {self._truncate_error_text(response.text)}"
-                )
+                error_text = self._truncate_error_text(response.text)
+                raise AIProxyGuardError(f"HTTP {response.status_code}: {error_text}")
 
     def _get_check_endpoint(self) -> str:
         """Get the check endpoint based on API mode."""
@@ -215,22 +220,24 @@ class AIProxyGuard:
             return "/api/v1/check"
         return "/check"
 
-    def _build_check_payload(self, text: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _build_check_payload(
+        self, text: str, context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Build the request payload based on API mode."""
         if self._api_mode == ApiMode.CLOUD:
-            payload: Dict[str, Any] = {"input": text}
+            payload: dict[str, Any] = {"input": text}
             if context:
                 payload["context"] = context
             return payload
         return {"text": text}
 
-    def _parse_check_response(self, data: Dict[str, Any]) -> CheckResult:
+    def _parse_check_response(self, data: dict[str, Any]) -> CheckResult:
         """Parse check response based on API mode."""
         if self._api_mode == ApiMode.CLOUD:
             return CheckResult.from_cloud_dict(data)
         return CheckResult.from_dict(data)
 
-    def _calculate_delay(self, attempt: int, rate_limit_retry: Optional[int]) -> float:
+    def _calculate_delay(self, attempt: int, rate_limit_retry: int | None) -> float:
         """Calculate delay with exponential backoff and jitter."""
         if rate_limit_retry is not None:
             return float(rate_limit_retry)
@@ -240,7 +247,7 @@ class AIProxyGuard:
 
     def _retry_sync(self, operation: Callable[[], T]) -> T:
         """Execute operation with retry logic (sync)."""
-        last_exception: Optional[Exception] = None
+        last_exception: Exception | None = None
 
         for attempt in range(self.retries + 1):
             try:
@@ -267,7 +274,7 @@ class AIProxyGuard:
 
     async def _retry_async(self, operation: Callable[[], T]) -> T:
         """Execute operation with retry logic (async)."""
-        last_exception: Optional[Exception] = None
+        last_exception: Exception | None = None
 
         for attempt in range(self.retries + 1):
             try:
@@ -297,13 +304,13 @@ class AIProxyGuard:
     # -------------------------------------------------------------------------
 
     def check(
-        self, text: str, context: Optional[Dict[str, Any]] = None
+        self, text: str, context: dict[str, Any] | None = None
     ) -> CheckResult:
         """Check text for prompt injection.
 
         Args:
             text: The text to scan for prompt injection.
-            context: Optional context metadata (cloud mode only, e.g., {"provider": "openai"}).
+            context: Optional context metadata (cloud mode only).
 
         Returns:
             CheckResult with action, category, signature_name, and confidence.
@@ -328,7 +335,7 @@ class AIProxyGuard:
         return self._retry_sync(do_check)
 
     def check_cloud(
-        self, text: str, context: Optional[Dict[str, Any]] = None
+        self, text: str, context: dict[str, Any] | None = None
     ) -> CloudCheckResult:
         """Check text and return full cloud API response (cloud mode only).
 
@@ -355,7 +362,7 @@ class AIProxyGuard:
 
         return self._retry_sync(do_check)
 
-    def check_batch(self, texts: List[str]) -> List[CheckResult]:
+    def check_batch(self, texts: list[str]) -> list[CheckResult]:
         """Check multiple texts for prompt injection.
 
         Args:
@@ -432,7 +439,7 @@ class AIProxyGuard:
     # -------------------------------------------------------------------------
 
     async def check_async(
-        self, text: str, context: Optional[Dict[str, Any]] = None
+        self, text: str, context: dict[str, Any] | None = None
     ) -> CheckResult:
         """Async version of check().
 
@@ -455,7 +462,7 @@ class AIProxyGuard:
         return await self._retry_async(do_check)
 
     async def check_cloud_async(
-        self, text: str, context: Optional[Dict[str, Any]] = None
+        self, text: str, context: dict[str, Any] | None = None
     ) -> CloudCheckResult:
         """Async version of check_cloud()."""
         if self._api_mode != ApiMode.CLOUD:
@@ -472,13 +479,13 @@ class AIProxyGuard:
         return await self._retry_async(do_check)
 
     async def check_batch_async(
-        self, texts: List[str], max_concurrency: Optional[int] = None
-    ) -> List[CheckResult]:
+        self, texts: list[str], max_concurrency: int | None = None
+    ) -> list[CheckResult]:
         """Async version of check_batch(). Runs checks with bounded concurrency.
 
         Args:
             texts: List of texts to scan.
-            max_concurrency: Maximum concurrent requests. Defaults to client's max_concurrency.
+            max_concurrency: Max concurrent requests. Uses client default if None.
 
         Returns:
             List of CheckResult objects in the same order as inputs.
@@ -541,13 +548,13 @@ class AIProxyGuard:
     # Context Manager
     # -------------------------------------------------------------------------
 
-    def __enter__(self) -> "AIProxyGuard":
+    def __enter__(self) -> AIProxyGuard:
         return self
 
     def __exit__(self, *args: Any) -> None:
         self.close()
 
-    async def __aenter__(self) -> "AIProxyGuard":
+    async def __aenter__(self) -> AIProxyGuard:
         return self
 
     async def __aexit__(self, *args: Any) -> None:
@@ -607,4 +614,5 @@ class AIProxyGuard:
             self._client = None
 
     def __repr__(self) -> str:
-        return f"AIProxyGuard(base_url={self.base_url!r}, api_mode={self._api_mode.value!r})"
+        mode = self._api_mode.value
+        return f"AIProxyGuard(base_url={self.base_url!r}, api_mode={mode!r})"

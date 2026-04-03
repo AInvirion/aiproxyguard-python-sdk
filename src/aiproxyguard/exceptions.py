@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .models import CheckResult
@@ -11,13 +11,14 @@ if TYPE_CHECKING:
 class AIProxyGuardError(Exception):
     """Base exception for AIProxyGuard SDK."""
 
-    def __init__(self, message: str, code: Optional[str] = None) -> None:
+    def __init__(self, message: str, code: str | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.code = code
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(message={self.message!r}, code={self.code!r})"
+        cls = self.__class__.__name__
+        return f"{cls}(message={self.message!r}, code={self.code!r})"
 
 
 class ValidationError(AIProxyGuardError):
@@ -53,21 +54,23 @@ class RateLimitError(AIProxyGuardError):
     """Raised when rate limited (429 errors)."""
 
     def __init__(
-        self, message: str = "Rate limited", retry_after: Optional[int] = None
+        self, message: str = "Rate limited", retry_after: int | None = None
     ) -> None:
         super().__init__(message, code="rate_limit")
         self.retry_after = retry_after
 
     def __repr__(self) -> str:
-        return f"RateLimitError(message={self.message!r}, retry_after={self.retry_after!r})"
+        return f"RateLimitError(message={self.message!r}, retry={self.retry_after})"
 
 
 class ContentBlockedError(AIProxyGuardError):
     """Raised when content is blocked due to prompt injection detection."""
 
-    def __init__(self, result: "CheckResult") -> None:
+    def __init__(self, result: CheckResult) -> None:
         super().__init__(f"Content blocked: {result.category}", code="content_blocked")
         self.result = result
 
     def __repr__(self) -> str:
-        return f"ContentBlockedError(category={self.result.category!r}, confidence={self.result.confidence})"
+        cat = self.result.category
+        conf = self.result.confidence
+        return f"ContentBlockedError(category={cat!r}, confidence={conf})"

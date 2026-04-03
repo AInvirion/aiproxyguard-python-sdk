@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class Action(str, Enum):
@@ -28,10 +28,10 @@ class ThreatDetail:
 
     type: str
     confidence: float
-    rule: Optional[str] = None
+    rule: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ThreatDetail":
+    def from_dict(cls, data: dict[str, Any]) -> ThreatDetail:
         """Create ThreatDetail from API response dictionary."""
         return cls(
             type=data["type"],
@@ -52,8 +52,8 @@ class CheckResult:
     """
 
     action: Action
-    category: Optional[str]
-    signature_name: Optional[str]
+    category: str | None
+    signature_name: str | None
     confidence: float
 
     @property
@@ -72,7 +72,7 @@ class CheckResult:
         return self.action in (Action.WARN, Action.BLOCK)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> CheckResult:
+    def from_dict(cls, data: dict[str, Any]) -> CheckResult:
         """Create a CheckResult from a proxy API response dictionary."""
         return cls(
             action=Action(data["action"]),
@@ -82,7 +82,7 @@ class CheckResult:
         )
 
     @classmethod
-    def from_cloud_dict(cls, data: Dict[str, Any]) -> CheckResult:
+    def from_cloud_dict(cls, data: dict[str, Any]) -> CheckResult:
         """Create a CheckResult from a cloud API response dictionary.
 
         The cloud API returns a different format with threats array.
@@ -123,7 +123,7 @@ class CloudCheckResult:
     id: str
     flagged: bool
     action: Action
-    threats: List[ThreatDetail]
+    threats: list[ThreatDetail]
     latency_ms: float
     cached: bool
 
@@ -138,7 +138,7 @@ class CloudCheckResult:
         return self.action == Action.BLOCK
 
     @property
-    def category(self) -> Optional[str]:
+    def category(self) -> str | None:
         """Returns the primary threat category, if any."""
         return self.threats[0].type if self.threats else None
 
@@ -148,7 +148,7 @@ class CloudCheckResult:
         return self.threats[0].confidence if self.threats else 0.0
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CloudCheckResult":
+    def from_dict(cls, data: dict[str, Any]) -> CloudCheckResult:
         """Create CloudCheckResult from API response dictionary."""
         return cls(
             id=data["id"],
@@ -173,7 +173,7 @@ class ServiceInfo:
     version: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ServiceInfo:
+    def from_dict(cls, data: dict[str, Any]) -> ServiceInfo:
         """Create ServiceInfo from an API response dictionary."""
         return cls(service=data["service"], version=data["version"])
 
@@ -191,7 +191,7 @@ class HealthStatus:
     healthy: bool
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> HealthStatus:
+    def from_dict(cls, data: dict[str, Any]) -> HealthStatus:
         """Create HealthStatus from an API response dictionary."""
         status = data.get("status", "unknown")
         return cls(status=status, healthy=status == "healthy")
@@ -209,10 +209,10 @@ class ReadyStatus:
 
     status: str
     ready: bool
-    checks: Dict[str, Any]
+    checks: dict[str, Any]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ReadyStatus:
+    def from_dict(cls, data: dict[str, Any]) -> ReadyStatus:
         """Create ReadyStatus from an API response dictionary."""
         status = data.get("status", "unknown")
         return cls(
