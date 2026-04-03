@@ -65,7 +65,9 @@ client = AIProxyGuard(
 
 ### Getting an API Key
 
-1. Sign up at [aiproxyguard.com](https://aiproxyguard.com)
+You can get an API key on [aiproxyguard.com](https://aiproxyguard.com):
+
+1. Sign up or log in at [aiproxyguard.com](https://aiproxyguard.com)
 2. Navigate to **Settings** → **API Keys**
 3. Click **Create API Key**
 4. Copy your key (starts with `apg_`)
