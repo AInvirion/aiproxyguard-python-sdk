@@ -1,16 +1,16 @@
 # AIProxyGuard Python SDK
 
-[![PyPI version](https://badge.fury.io/py/aiproxyguard.svg)](https://badge.fury.io/py/aiproxyguard)
-[![Python](https://img.shields.io/pypi/pyversions/aiproxyguard.svg)](https://pypi.org/project/aiproxyguard/)
+[![PyPI version](https://badge.fury.io/py/aiproxyguard-python-sdk.svg)](https://badge.fury.io/py/aiproxyguard-python-sdk)
+[![Python](https://img.shields.io/pypi/pyversions/aiproxyguard-python-sdk.svg)](https://pypi.org/project/aiproxyguard-python-sdk/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Tests](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/tests.yml)
+[![Tests](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/AInvirion/aiproxyguard-python-sdk/actions/workflows/ci.yml)
 
 Official Python SDK for [AIProxyGuard](https://aiproxyguard.com) - an LLM security proxy that detects prompt injection attacks in real-time.
 
 ## Installation
 
 ```bash
-pip install aiproxyguard
+pip install aiproxyguard-python-sdk
 ```
 
 **Requirements:** Python 3.9+
