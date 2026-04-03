@@ -327,6 +327,13 @@ Extended result from cloud API.
 | `WARN` | Potential issue, proceed with caution |
 | `BLOCK` | Detected threat, do not proceed |
 
+## Security Features
+
+- **HTTPS Enforcement** - API keys rejected over plain HTTP (except localhost)
+- **Input Validation** - Request payloads validated before sending
+- **Concurrency Control** - Configurable limits for batch operations
+- **Automatic Retries** - Exponential backoff with jitter for transient failures
+
 ## Requirements
 
 - Python 3.9+
