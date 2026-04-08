@@ -802,6 +802,94 @@ class TestCloudMode:
         assert '"context":' in request_body
         assert '"provider":' in request_body
 
+    def test_feedback_requires_cloud_mode(self, base_url):
+        """Test feedback raises in proxy mode."""
+        from aiproxyguard import AIProxyGuardError
+
+        client = AIProxyGuard(base_url)
+        with pytest.raises(AIProxyGuardError) as exc:
+            client.feedback("chk_123", "confirmed")
+        assert "requires cloud API mode" in str(exc.value)
+
+    def test_feedback_validates_feedback_value(self):
+        """Test feedback validates feedback parameter."""
+        client = AIProxyGuard(
+            "https://aiproxyguard.com", api_key="test", api_mode="cloud"
+        )
+        with pytest.raises(ValidationError) as exc:
+            client.feedback("chk_123", "invalid")
+        assert "confirmed" in str(exc.value) or "false_positive" in str(exc.value)
+
+    def test_feedback_sync(self):
+        """Test feedback submits correctly."""
+        feedback_response = {
+            "success": True,
+            "check_id": "chk_123",
+            "feedback": "confirmed",
+        }
+        with respx.mock(base_url="https://aiproxyguard.com") as mock:
+            route = mock.post("/api/v1/feedback").respond(200, json=feedback_response)
+
+            client = AIProxyGuard(
+                "https://aiproxyguard.com", api_key="test", api_mode="cloud"
+            )
+            result = client.feedback("chk_123", "confirmed")
+
+        assert result.success is True
+        assert result.check_id == "chk_123"
+        assert result.feedback == "confirmed"
+        assert route.called
+
+    def test_feedback_with_comment(self):
+        """Test feedback with optional comment."""
+        feedback_response = {
+            "success": True,
+            "check_id": "chk_456",
+            "feedback": "false_positive",
+        }
+        with respx.mock(base_url="https://aiproxyguard.com") as mock:
+            route = mock.post("/api/v1/feedback").respond(200, json=feedback_response)
+
+            client = AIProxyGuard(
+                "https://aiproxyguard.com", api_key="test", api_mode="cloud"
+            )
+            result = client.feedback(
+                "chk_456", "false_positive", comment="This was a normal question"
+            )
+
+        assert result.success is True
+        request_body = route.calls[0].request.content.decode()
+        assert '"comment":' in request_body
+
+    @pytest.mark.asyncio
+    async def test_feedback_async(self):
+        """Test feedback_async submits correctly."""
+        feedback_response = {
+            "success": True,
+            "check_id": "chk_789",
+            "feedback": "confirmed",
+        }
+        with respx.mock(base_url="https://aiproxyguard.com") as mock:
+            mock.post("/api/v1/feedback").respond(200, json=feedback_response)
+
+            async with AIProxyGuard(
+                "https://aiproxyguard.com", api_key="test", api_mode="cloud"
+            ) as client:
+                result = await client.feedback_async("chk_789", "confirmed")
+
+        assert result.success is True
+        assert result.check_id == "chk_789"
+
+    @pytest.mark.asyncio
+    async def test_feedback_async_requires_cloud_mode(self, base_url):
+        """Test feedback_async raises in proxy mode."""
+        from aiproxyguard import AIProxyGuardError
+
+        client = AIProxyGuard(base_url)
+        with pytest.raises(AIProxyGuardError) as exc:
+            await client.feedback_async("chk_123", "confirmed")
+        assert "requires cloud API mode" in str(exc.value)
+
 
 class TestAsyncRetryPaths:
     """Tests for async retry error handling paths."""
@@ -935,6 +1023,45 @@ class TestErrorHandling:
 
         assert result.is_safe
 
+    def test_rate_limit_with_invalid_retry_after(self, base_url, allow_response):
+        """Test rate limit with invalid Retry-After is handled gracefully."""
+        with respx.mock(base_url=base_url) as mock:
+            mock.post("/check").side_effect = [
+                httpx.Response(429, headers={"Retry-After": "invalid-value"}),
+                httpx.Response(200, json=allow_response),
+            ]
+
+            client = AIProxyGuard(base_url, retry_delay=0.01)
+            result = client.check("test")
+
+        assert result.is_safe
+
+    def test_parse_retry_after_integer(self, base_url):
+        """Test _parse_retry_after with integer seconds."""
+        client = AIProxyGuard(base_url)
+        assert client._parse_retry_after("60") == 60
+        assert client._parse_retry_after("0") == 0
+        assert client._parse_retry_after(None) is None
+
+    def test_parse_retry_after_http_date(self, base_url):
+        """Test _parse_retry_after with HTTP-date format."""
+        from datetime import datetime, timedelta, timezone
+
+        client = AIProxyGuard(base_url)
+        # Create a date 30 seconds in the future
+        future = datetime.now(timezone.utc) + timedelta(seconds=30)
+        date_str = future.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        result = client._parse_retry_after(date_str)
+        # Should be approximately 30 seconds (allow some tolerance)
+        assert result is not None
+        assert 25 <= result <= 35
+
+    def test_parse_retry_after_invalid(self, base_url):
+        """Test _parse_retry_after with invalid format returns None."""
+        client = AIProxyGuard(base_url)
+        assert client._parse_retry_after("not-a-number-or-date") is None
+        assert client._parse_retry_after("") is None
+
 
 class TestSetApiKeyAsyncCleanup:
     """Tests for set_api_key async client cleanup."""
@@ -956,18 +1083,23 @@ class TestSetApiKeyAsyncCleanup:
 
     def test_close_handles_pending_async(self, base_url, allow_response):
         """Test close() handles pending async client."""
+        import asyncio
+
         with respx.mock(base_url=base_url) as mock:
             mock.post("/check").respond(200, json=allow_response)
 
             client = AIProxyGuard(base_url, api_key="key")
-            # Manually set a pending client to test cleanup
-            import asyncio
 
+            # Create async client and pending close using a fresh event loop
             async def create_client():
                 await client.check_async("test")
                 client.set_api_key("new")
 
-            asyncio.get_event_loop().run_until_complete(create_client())
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(create_client())
+            finally:
+                loop.close()
 
             # close() should handle pending async client
             client.close()

@@ -6,6 +6,7 @@ from aiproxyguard.models import (
     Action,
     CheckResult,
     CloudCheckResult,
+    FeedbackResult,
     HealthStatus,
     ReadyStatus,
     ServiceInfo,
@@ -305,3 +306,30 @@ class TestCheckResultFromCloudDict:
         assert result.category is None
         assert result.signature_name is None
         assert result.confidence == 0.0
+
+
+class TestFeedbackResult:
+    """Tests for FeedbackResult model."""
+
+    def test_from_dict(self):
+        """Test creating FeedbackResult from API response."""
+        data = {
+            "success": True,
+            "check_id": "chk_123",
+            "feedback": "confirmed",
+        }
+        result = FeedbackResult.from_dict(data)
+        assert result.success is True
+        assert result.check_id == "chk_123"
+        assert result.feedback == "confirmed"
+
+    def test_from_dict_false_positive(self):
+        """Test creating FeedbackResult for false positive."""
+        data = {
+            "success": True,
+            "check_id": "chk_456",
+            "feedback": "false_positive",
+        }
+        result = FeedbackResult.from_dict(data)
+        assert result.success is True
+        assert result.feedback == "false_positive"

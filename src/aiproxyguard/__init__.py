@@ -8,6 +8,7 @@ Example:
     ...     print(f"Blocked: {result.category}")
 """
 
+from ._version import __version__
 from .client import AIProxyGuard, ApiMode
 from .decorators import GuardConfigurationError, guard, guard_output
 from .exceptions import (
@@ -23,15 +24,16 @@ from .models import (
     Action,
     CheckResult,
     CloudCheckResult,
+    FeedbackResult,
     HealthStatus,
     ReadyStatus,
     ServiceInfo,
     ThreatDetail,
 )
 
-__version__ = "0.1.0"
-
 __all__ = [
+    # Version
+    "__version__",
     # Client
     "AIProxyGuard",
     "ApiMode",
@@ -39,6 +41,7 @@ __all__ = [
     "Action",
     "CheckResult",
     "CloudCheckResult",
+    "FeedbackResult",
     "HealthStatus",
     "ReadyStatus",
     "ServiceInfo",
