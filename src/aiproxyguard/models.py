@@ -161,6 +161,30 @@ class CloudCheckResult:
 
 
 @dataclass(frozen=True)
+class FeedbackResult:
+    """Result from submitting feedback for a check.
+
+    Attributes:
+        success: Whether the feedback was submitted successfully.
+        check_id: The check ID that was updated.
+        feedback: The feedback value that was recorded.
+    """
+
+    success: bool
+    check_id: str
+    feedback: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> FeedbackResult:
+        """Create FeedbackResult from API response dictionary."""
+        return cls(
+            success=data["success"],
+            check_id=data["check_id"],
+            feedback=data["feedback"],
+        )
+
+
+@dataclass(frozen=True)
 class ServiceInfo:
     """Service information from the AIProxyGuard API.
 

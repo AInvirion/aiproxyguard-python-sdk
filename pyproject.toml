@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aiproxyguard-python-sdk"
-version = "0.1.0"
+version = "0.2.0"
 description = "Official Python SDK for AIProxyGuard - LLM security proxy for prompt injection detection"
 readme = "README.md"
 license = "Apache-2.0"

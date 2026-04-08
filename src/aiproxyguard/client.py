@@ -11,6 +11,7 @@ from typing import Any, Callable, TypeVar
 
 import httpx
 
+from ._version import __version__
 from .exceptions import (
     AIProxyGuardError,
     ConnectionError,
@@ -22,6 +23,7 @@ from .exceptions import (
 from .models import (
     CheckResult,
     CloudCheckResult,
+    FeedbackResult,
     HealthStatus,
     ReadyStatus,
     ServiceInfo,
@@ -145,7 +147,11 @@ class AIProxyGuard:
 
     def _get_headers(self) -> dict[str, str]:
         """Build request headers."""
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "X-SDK-Version": __version__,
+            "X-SDK-Type": "python-sdk",
+        }
         if self._api_key:
             headers["X-API-Key"] = self._api_key
         return headers
@@ -176,13 +182,36 @@ class AIProxyGuard:
             return text
         return text[:_MAX_ERROR_TEXT_LENGTH] + "..."
 
+    def _parse_retry_after(self, value: str | None) -> int | None:
+        """Parse Retry-After header (integer seconds or HTTP-date)."""
+        if not value:
+            return None
+        # Try integer seconds first (most common)
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        # Try HTTP-date format (e.g., "Wed, 21 Oct 2015 07:28:00 GMT")
+        try:
+            from email.utils import parsedate_to_datetime
+
+            retry_dt = parsedate_to_datetime(value)
+            from datetime import datetime, timezone
+
+            now = datetime.now(timezone.utc)
+            delta = (retry_dt - now).total_seconds()
+            return max(0, int(delta))
+        except (ValueError, TypeError):
+            # Invalid format, ignore
+            return None
+
     def _handle_error(self, response: httpx.Response) -> None:
         """Handle error responses from the API."""
         if response.status_code == 429:
-            retry_after = response.headers.get("Retry-After")
+            retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
             raise RateLimitError(
                 "Rate limited",
-                retry_after=int(retry_after) if retry_after else None,
+                retry_after=retry_after,
             )
 
         # 5xx errors are server errors (retryable)
@@ -363,6 +392,47 @@ class AIProxyGuard:
 
         return self._retry_sync(do_check)
 
+    def feedback(
+        self,
+        check_id: str,
+        feedback: str,
+        comment: str | None = None,
+    ) -> FeedbackResult:
+        """Submit feedback for a check result (cloud mode only).
+
+        Use this to report false positives or confirm correct detections,
+        which helps improve detection accuracy over time.
+
+        Args:
+            check_id: The check ID from CloudCheckResult.id.
+            feedback: Either "confirmed" (correct detection) or "false_positive".
+            comment: Optional comment explaining the feedback.
+
+        Returns:
+            FeedbackResult confirming the feedback was recorded.
+
+        Raises:
+            AIProxyGuardError: If not in cloud mode or request fails.
+            ValidationError: If check_id not found or invalid feedback value.
+        """
+        if self._api_mode != ApiMode.CLOUD:
+            raise AIProxyGuardError("feedback() requires cloud API mode")
+
+        if feedback not in ("confirmed", "false_positive"):
+            raise ValidationError("feedback must be 'confirmed' or 'false_positive'")
+
+        client = self._get_client()
+        payload: dict[str, Any] = {"check_id": check_id, "feedback": feedback}
+        if comment:
+            payload["comment"] = comment
+
+        def do_feedback() -> FeedbackResult:
+            response = client.post("/api/v1/feedback", json=payload)
+            self._handle_error(response)
+            return FeedbackResult.from_dict(response.json())
+
+        return self._retry_sync(do_feedback)
+
     def check_batch(self, texts: list[str]) -> list[CheckResult]:
         """Check multiple texts for prompt injection.
 
@@ -479,6 +549,31 @@ class AIProxyGuard:
 
         return await self._retry_async(do_check)
 
+    async def feedback_async(
+        self,
+        check_id: str,
+        feedback: str,
+        comment: str | None = None,
+    ) -> FeedbackResult:
+        """Async version of feedback()."""
+        if self._api_mode != ApiMode.CLOUD:
+            raise AIProxyGuardError("feedback_async() requires cloud API mode")
+
+        if feedback not in ("confirmed", "false_positive"):
+            raise ValidationError("feedback must be 'confirmed' or 'false_positive'")
+
+        client = self._get_async_client()
+        payload: dict[str, Any] = {"check_id": check_id, "feedback": feedback}
+        if comment:
+            payload["comment"] = comment
+
+        async def do_feedback() -> FeedbackResult:
+            response = await client.post("/api/v1/feedback", json=payload)
+            self._handle_error(response)
+            return FeedbackResult.from_dict(response.json())
+
+        return await self._retry_async(do_feedback)
+
     async def check_batch_async(
         self, texts: list[str], max_concurrency: int | None = None
     ) -> list[CheckResult]:
@@ -561,6 +656,22 @@ class AIProxyGuard:
     async def __aexit__(self, *args: Any) -> None:
         await self.aclose()
 
+    def _close_async_client_sync(self, client: httpx.AsyncClient) -> None:
+        """Close an async client from a sync context."""
+        if client.is_closed:
+            return
+        try:
+            # If there's a running loop, schedule the close
+            loop = asyncio.get_running_loop()
+            loop.create_task(client.aclose())
+        except RuntimeError:
+            # No running loop - create a temporary one to close properly
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(client.aclose())
+            finally:
+                loop.close()
+
     def close(self) -> None:
         """Close all clients and release resources.
 
@@ -573,30 +684,11 @@ class AIProxyGuard:
             self._client = None
         # Close pending async client from set_api_key()
         if self._pending_async_close:
-            try:
-                # Best effort - httpx AsyncClient has _closed flag we can check
-                if not getattr(self._pending_async_close, "_closed", True):
-                    # Create event loop if needed for cleanup
-                    try:
-                        loop = asyncio.get_running_loop()
-                        loop.create_task(self._pending_async_close.aclose())
-                    except RuntimeError:
-                        # No event loop - just let it be garbage collected
-                        pass
-            except Exception:
-                pass
+            self._close_async_client_sync(self._pending_async_close)
             self._pending_async_close = None
         # Close current async client if it exists
         if self._async_client:
-            try:
-                if not getattr(self._async_client, "_closed", True):
-                    try:
-                        loop = asyncio.get_running_loop()
-                        loop.create_task(self._async_client.aclose())
-                    except RuntimeError:
-                        pass
-            except Exception:
-                pass
+            self._close_async_client_sync(self._async_client)
             self._async_client = None
 
     async def aclose(self) -> None:
