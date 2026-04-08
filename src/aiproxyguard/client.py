@@ -658,7 +658,7 @@ class AIProxyGuard:
 
     def _close_async_client_sync(self, client: httpx.AsyncClient) -> None:
         """Close an async client from a sync context."""
-        if getattr(client, "_closed", True):
+        if client.is_closed:
             return
         try:
             # If there's a running loop, schedule the close
