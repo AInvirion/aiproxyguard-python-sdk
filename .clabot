@@ -5,6 +5,7 @@
   "contributors": [
     "oscarvalenzuelab",
     "cla-bot[bot]",
-    "dependabot[bot]"
+    "dependabot[bot]",
+    "github-actions[bot]"
   ]
 }
